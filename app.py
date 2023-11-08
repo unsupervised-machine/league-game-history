@@ -3,68 +3,37 @@ from flask_bootstrap import Bootstrap5
 from flask_wtf import FlaskForm, CSRFProtect
 from wtforms import StringField, SubmitField
 from wtforms.validators import DataRequired, Length
-from forms import CreateUserForm
+from forms import CreateUserForm, SearchForSummoner
 
 from werkzeug.local import LocalProxy
 from flask_pymongo import PyMongo
 from models import User
 
-import uuid
-import random
-from faker import Faker
+import requests
 
-# TODO Implement Secrets
-# import secrets
-# foo = secrets.token_urlsafe(16)
-# app.secret_key = foo
+from configparser import ConfigParser
+config = ConfigParser()
+config.read('config/keys_config.cfg')
 
 
 
-# TODO: ( later) move to separate database file?
-# def get_db():
-#     """
-#     Configuration method to return db instance
-#     """
-#     db = getattr(g, "_database", None)
-#
-#     if db is None:
-#         db = g._database = PyMongo(current_app).db
-#
-#     return db
-#
-#
-# # Use LocalProxy to read the global db instance with just `db`
-# db = LocalProxy(get_db)
+
+
 
 app = Flask(__name__)
-app.secret_key = 'tO$&!|0wkamvVia0?n$NqIRVWOG'
-app.config['MONGO_URI'] = 'mongodb://localhost:27017/test_db'
+API_KEY = config.get('riot_games', 'api_key')
+app.secret_key = config.get('csrf', 'secret_key')
+app.config['MONGO_URI'] = config.get('mongo', 'db_uri')
 mongo = PyMongo(app)
 bootstrap = Bootstrap5(app)
 csrf = CSRFProtect(app)
 
-# ## get db
-# db = g._database = PyMongo(app).db
 
-
-@app.route('/users/test_form', methods=["GET", "POST"])
-def create_random_user():
-    form = CreateUserForm()
-    if form.validate_on_submit():
-        random_user = {
-            "puuid": form.puuid.data,
-            "summoner_name": form.summoner_name.data,
-            "profile_icon_id": form.profile_icon_id.data,
-            "summoner_level": form.summoner_level.data,
-        }
-        user_collection = mongo.db.users.insert_one(random_user)
-        return redirect(url_for('get_user_by_puuid', puuid=form.puuid.data))
-    form.puuid.data = str(uuid.uuid4())
-    form.summoner_name.data = Faker().name()
-    form.profile_icon_id.data = random.randint(1, 200)
-    form.summoner_level.data = random.randint(0, 100_000)
-    return render_template('test_form.html', form=form)
-
+@app.route('/')
+def status_check():
+    message = 'app is running!'
+    print(message)
+    return message
 
 @app.route('/users/<string:puuid>')
 def get_user_by_puuid(puuid: str):
@@ -75,19 +44,6 @@ def get_user_by_puuid(puuid: str):
     return str(user)
 
 
-# @app.route('/users/all', method=['GET'])
-# def get_all_users():
-#     # example usage:
-#     #   http://127.0.0.1:5000/users/all
-#     all_users_entry = mongo.db.users.find()
-#     all_users = []
-#     for x in all_users_entry:
-#         # print(x)
-#         all_users.append(x)
-#     return str(all_users)
-
-
-# TODO: find out what to use instead of request.form (using flask) to pass in data (maybe headers?)
 @app.route('/users', methods=["POST"])
 def post_user():
     user = User(
@@ -100,18 +56,60 @@ def post_user():
     return str(user)
 
 
-app.run()
+"""
+TODO:
+    Functionality for user to search for by summoner name.
+    Display summoner_name, summoner_level and profile_icon_id (swap to image later) on webpage
+    Add puuid, summoner_name, profile_icon_id, and summoner_level to database
+"""
 
-## TODO NOW
-# fix POST call to /users correctly
+# instead of just printing raw json let's put the output in a nice template
+# just find and display summoner
+@app.route('/summoners/search', methods=["GET", "POST"])
+def summoner_search():
+    # example usage: http://127.0.0.1:5000/summoners/search --> taran
+    form = SearchForSummoner()
+    if form.validate_on_submit():
+        summoner = {
+            "summoner_name": form.summoner_name.data
+        }
+        api_url = f'https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-name/{summoner["summoner_name"]}?api_key={API_KEY}'
+        response = requests.get(api_url)
+        if response.status_code == 200:
+            data = response.json()
+            return render_template('display_summoner.html', data=data, the_title=data['name'])
+        else:
+            # Handle API error response
+            error_message = "Error fetching summoner data"
+            return {"error": error_message}, response.status_code
+    return render_template('test_form.html', form=form)
 
-# get match info
-# post match info
-
-# get a user's match history
-# post a user's match history
 
 
-## TODO LATER
-# input parameters as headers instead of url
-# learn how to setup db for mongodb properly using LocalProxy()
+
+
+
+# find display and save summoner
+# @app.route('/summoners/search', methods=["GET", "POST"])
+# def summoner_search():
+#     form = SearchForSummoner()
+#     if form.validate_on_submit():
+#         summoner = {
+#             "summoner_name": form.summoner_name.data
+#         }
+#         api_url = f'https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-name/{summoner["summoner_name"]}?api_key={API_KEY}'
+#         data = requests.get(api_url).json()
+#     user = User(
+#         puuid=request.form["puuid"],
+#         summoner_name=request.form["summoner_name"],
+#         profile_icon_id=int(request.form["profile_icon_id"]),
+#         summoner_level=int(request.form["summoner_level"]),
+#     )
+#     mongo.db.users.insert_one({str(user)})
+#     return str(user)
+#
+
+
+
+if __name__ == '__main__':
+    app.run(debug=True)

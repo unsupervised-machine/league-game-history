@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ data['name'] }}</title>
+</head>
+<body>
+
+<!-- the full dict for a summoner is sent here as pres by the route -->
+
+<h1>{{ data['name'] }}</h1>
+
+<img class="right" src="{{ url_for('static', filename='images/profileicon/' + data['profileIconId']|string) + '.png' }}" alt="Profile icon">
+
+<p>
+    Summoner name: {{ data['name']}} <br>
+    Summoner level: {{ data['summonerLevel']}} <br>
+    Profile icon: {{ data['profileIconId']}}
+</p>
+
+</body>
+</html>

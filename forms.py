@@ -9,3 +9,9 @@ class CreateUserForm(FlaskForm):
     profile_icon_id = IntegerField('profile_icon_id: ', validators=[DataRequired()])
     summoner_level = IntegerField('summoner_level: ', validators=[DataRequired()])
     submit = SubmitField('Submit')
+
+
+class SearchForSummoner(FlaskForm):
+    summoner_name = StringField('summoner_name: ', validators=[DataRequired()])
+    submit = SubmitField('Submit')
+
