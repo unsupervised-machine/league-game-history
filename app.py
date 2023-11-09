@@ -1,3 +1,5 @@
+from typing import Any
+
 from flask import Flask, current_app, g, request, render_template, redirect, url_for
 from flask_bootstrap import Bootstrap5
 from flask_wtf import FlaskForm, CSRFProtect
@@ -12,6 +14,8 @@ from models import User
 from datetime import datetime
 
 import requests
+
+from collections import OrderedDict
 
 from configparser import ConfigParser
 config = ConfigParser()
@@ -58,43 +62,165 @@ def post_user():
     return str(user)
 
 
+
+# @app.route('/summoners/search', methods=["GET", "POST"])
+# def summoner_search():
+#     # example usage: http://127.0.0.1:5000/summoners/search --> taran
+#     form = SearchForSummoner()
+#     if form.validate_on_submit():
+#         summoner = {
+#             "summoner_name": form.summoner_name.data
+#         }
+#         api_url = f'https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-name/{summoner["summoner_name"]}?api_key={API_KEY}'
+#         response = requests.get(api_url)
+#         if response.status_code == 200:
+#             data = response.json()
+#             filter_criteria = {'puuid': data['puuid']}
+#             update_operation = {
+#                 '$set': {
+#                     'puuid': data['puuid'],
+#                     'summoner_name': data['name'],
+#                     'profile_icon_id': data['profileIconId'],
+#                     'summoner_level': data['summonerLevel'],
+#                     'last_updated': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+#                 }
+#             }
+#             mongo.db.users.update_one(filter_criteria, update_operation, upsert=True)
+#             return render_template('display_summoner.html', data=data, the_title=data['name'])
+#         else:
+#             # Handle API error response
+#             error_message = "Error fetching summoner data"
+#             return {"error": error_message}, response.status_code
+#     return render_template('test_form.html', form=form)
+
+
+
 """
 TODO:
-    When someone searches for a summoner, update that summoners info in our database, if it doesnt exist add it to database
+    Create a match history collection, add last 20 games of a summoner when they are searched
 """
 
-# instead of just printing raw json let's put the output in a nice template
-# just find and display summoner
-# instead o
+
+def fetch_account_info_summoner(summoner: str) -> dict | None:
+    api_url = f'https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-name/{summoner}?api_key={API_KEY}'
+    try:
+        response = requests.get(api_url)
+        response.raise_for_status()  # Raise an exception if the response status code is not 200 OK
+    except requests.exceptions.RequestException as e:
+        # Handle exceptions for failed HTTP request
+        print(f"HTTP Request Error: {e}")
+        return None
+    try:
+        data = response.json()
+    except ValueError as e:
+        # Handle exceptions for JSON parsing errors
+        print(f"JSON Parsing Error: {e}")
+        return None
+    return data
+
+
+def fetch_match_history_puuid(puuid: str, num_games=20) -> list | None:
+    api_url = f'https://americas.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids?start=0&count={num_games}&api_key={API_KEY}'
+    try:
+        response = requests.get(api_url)
+        response.raise_for_status()  # Raise an exception if the response status code is not 200 OK
+    except requests.exceptions.RequestException as e:
+        # Handle exceptions for failed HTTP request
+        print(f"HTTP Request Error: {e}")
+        return None
+    try:
+        data = response.json()
+    except ValueError as e:
+        # Handle exceptions for JSON parsing errors
+        print(f"JSON Parsing Error: {e}")
+        return None
+    return data
+
+
+def fetch_match_details(match_id: str) -> dict | None:
+    api_url = f'https://americas.api.riotgames.com/lol/match/v5/matches/{match_id}?api_key={API_KEY}'
+    try:
+        response = requests.get(api_url)
+        response.raise_for_status()  # Raise an exception if the response status code is not 200 OK
+    except requests.exceptions.RequestException as e:
+        # Handle exceptions for failed HTTP request
+        print(f"HTTP Request Error: {e}")
+        return None
+    try:
+        match_data = response.json()
+    except ValueError as e:
+        # Handle exceptions for JSON parsing errors
+        print(f"JSON Parsing Error: {e}")
+        return None
+    return match_data
+
+
+def get_champion_id(puuid: str, match_data: dict) -> int:
+    # can we display champion skin rather than base champion icon?
+    # looked it up answer to above is no...
+    player_index = match_data["metadata"]["participants"].index(puuid)
+    champion_id = match_data["info"]["participants"][player_index]["championId"]
+    return champion_id
+
+
+def get_win_or_loss(puuid:str, match_data: dict) -> bool:
+    player_index = match_data["metadata"]["participants"].index(puuid)
+    team_1_win = match_data["info"]["teams"][1]["win"] == 'true'
+    if player_index <= 4:
+        return team_1_win
+    return not team_1_win
+
+
 @app.route('/summoners/search', methods=["GET", "POST"])
 def summoner_search():
     # example usage: http://127.0.0.1:5000/summoners/search --> taran
     form = SearchForSummoner()
     if form.validate_on_submit():
-        summoner = {
-            "summoner_name": form.summoner_name.data
-        }
-        api_url = f'https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-name/{summoner["summoner_name"]}?api_key={API_KEY}'
-        response = requests.get(api_url)
-        if response.status_code == 200:
-            data = response.json()
-            filter_criteria = {'puuid': data['puuid']}
-            update_operation = {
-                '$set': {
-                    'puuid': data['puuid'],
-                    'summoner_name': data['name'],
-                    'profile_icon_id': data['profileIconId'],
-                    'summoner_level': data['summonerLevel'],
-                    'last_updated': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                }
+        summoner_name = form.summoner_name.data
+        account_info = fetch_account_info_summoner(summoner_name)
+        # can only handle 20 match_ids for now
+        match_history_ids = fetch_match_history_puuid(account_info['puuid'])[:20]
+        # supplementary_match_info is used for html won't be saved into database
+        supplementary_match_info = OrderedDict()
+        for idx, match_id in enumerate(match_history_ids):
+            match_data = fetch_match_details(match_id=match_id)
+            champion_id = get_champion_id(puuid=account_info['puuid'], match_data=match_data)
+            win_bool = get_win_or_loss(puuid=account_info['puuid'], match_data=match_data)
+            supplementary_match_info[match_id] = {
+                'index': idx,
+                'match_id': match_id,
+                'champion_id': champion_id,
+                'win_bool': win_bool
             }
-            mongo.db.users.update_one(filter_criteria, update_operation, upsert=True)
-            return render_template('display_summoner.html', data=data, the_title=data['name'])
-        else:
-            # Handle API error response
-            error_message = "Error fetching summoner data"
-            return {"error": error_message}, response.status_code
+
+        filter_criteria = {'puuid': account_info['puuid']}
+        update_operation = {
+            '$set': {
+                'puuid': account_info['puuid'],
+                'summoner_name': account_info['name'],
+                'profile_icon_id': account_info['profileIconId'],
+                'summoner_level': account_info['summonerLevel'],
+                'recent_matches': match_history_ids,
+                'last_updated': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
+        }
+        mongo.db.users.update_one(filter_criteria, update_operation, upsert=True)
+        return render_template('display_summoner.html',
+                               account_info=account_info,
+                               supplementary_match_info=supplementary_match_info
+                               )
     return render_template('test_form.html', form=form)
+
+
+
+"""
+TODO:
+    Create auto update high elo summoner list.
+        Delete existing table of high elo summoners.
+        request new list of high elo players and add it to database
+            
+"""
+
 
 
 

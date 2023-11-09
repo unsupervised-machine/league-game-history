@@ -2,20 +2,29 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>{{ data['name'] }}</title>
+    <title>{{ account_info['name'] }}</title>
 </head>
 <body>
 
 <!-- the full dict for a summoner is sent here as pres by the route -->
 
-<h1>{{ data['name'] }}</h1>
+<h1>{{ account_info['name'] }}</h1>
 
-<img class="right" src="{{ url_for('static', filename='images/profileicon/' + data['profileIconId']|string) + '.png' }}" alt="Profile icon">
+<img class="right" src="{{ url_for('static', filename='images/profileicon/' + account_info['profileIconId']|string) + '.png' }}" alt="Profile icon">
 
 <p>
-    Summoner name: {{ data['name']}} <br>
-    Summoner level: {{ data['summonerLevel']}} <br>
-    Profile icon: {{ data['profileIconId']}}
+    Summoner name: {{ account_info['name']}} <br>
+    Summoner level: {{ account_info['summonerLevel']}} <br>
+    Profile icon: {{ account_info['profileIconId']}}
+    <h1>Recent Matches:</h1>
+    <ul>
+        {% for match in supplementary_match_info.values() %}
+            <li style="background-color: {% if match['win_bool'] %}green{% else %}red{% endif %}; font-size:24px;">
+                Index: {{ match['index'] }}, Match ID: {{ match['match_id'] }}, Champion ID: {{ match['champion_id'] }}, Win: {{ match['win_bool'] }}
+                <img class="left" src="{{ url_for('static', filename='champion/champion_icons_id/' + match['champion_id']|string) + '.png' }}" alt="Champion icon">
+            </li>
+        {% endfor %}
+    </ul>
 </p>
 
 </body>
