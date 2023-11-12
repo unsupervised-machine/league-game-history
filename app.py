@@ -167,32 +167,40 @@ def get_win_or_loss(puuid:str, match_data: dict) -> bool:
     player_index = match_data["metadata"]["participants"].index(puuid)
     return match_data["info"]["participants"][player_index]["win"]
 
-def get_game_mode():
+
+def get_players(match_data: dict):
     pass
 
-
-def get_kills_death_assists():
-    pass
-
-
-def get_minions_killed():
-    pass
+def get_game_mode(match_data: dict) -> str:
+    return match_data["info"]["gameMode"]
 
 
-def get_damaged_dealt():
-    pass
+def get_kills_death_assists(puuid:str, match_data: dict) -> (int, int, int):
+    player_index = match_data["metadata"]["participants"].index(puuid)
+    kills = match_data["info"]["participants"][player_index]["kills"]
+    deaths = match_data["info"]["participants"][player_index]["deaths"]
+    assists = match_data["info"]["participants"][player_index]["assists"]
+    return kills, deaths, assists
 
 
-def get_final_items():
-    pass
+def get_minions_killed(puuid:str, match_data: dict) -> int:
+    return match_data["info"]["participants"][player_index]["totalMinionsKilled"]
 
 
-# consider replacing all of these individual functions with a single get_statistics function
-def get_player_statistics(player_stats, stat_name):
-    # return player_stats.get(stat_name, None)
-    pass
+def get_damaged_dealt(puuid:str, match_data: dict) -> int:
+    return match_data["info"]["participants"][player_index]["totalDamageDealt"]
 
 
+def get_final_items(puuid:str, match_data: dict) -> (int, int, int, int, int, int, int):
+    player_index = match_data["metadata"]["participants"].index(puuid)
+    item_0 = match_data["info"]["participants"][player_index]["item0"]
+    item_1 = match_data["info"]["participants"][player_index]["item1"]
+    item_2 = match_data["info"]["participants"][player_index]["item2"]
+    item_3 = match_data["info"]["participants"][player_index]["item3"]
+    item_4 = match_data["info"]["participants"][player_index]["item4"]
+    item_5 = match_data["info"]["participants"][player_index]["item5"]
+    item_6 = match_data["info"]["participants"][player_index]["item6"]
+    return item_0, item_1, item_2, item_3, item_4, item_5, item_6
 
 
 @app.route('/summoners/search', methods=["GET", "POST"])
