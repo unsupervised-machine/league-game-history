@@ -17,6 +17,10 @@ keep track of their in-game performance and match history.
 - Contributing
 - License
 
+![Match History](project_updates/2023_11_08/match_history_functionality.png)
+
+
+
 ### Prerequisites
 Before you begin, ensure you have met the following requirements:
 
