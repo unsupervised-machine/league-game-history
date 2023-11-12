@@ -165,10 +165,34 @@ def get_champion_id(puuid: str, match_data: dict) -> int:
 
 def get_win_or_loss(puuid:str, match_data: dict) -> bool:
     player_index = match_data["metadata"]["participants"].index(puuid)
-    team_1_win = match_data["info"]["teams"][1]["win"] == 'true'
-    if player_index <= 4:
-        return team_1_win
-    return not team_1_win
+    return match_data["info"]["participants"][player_index]["win"]
+
+def get_game_mode():
+    pass
+
+
+def get_kills_death_assists():
+    pass
+
+
+def get_minions_killed():
+    pass
+
+
+def get_damaged_dealt():
+    pass
+
+
+def get_final_items():
+    pass
+
+
+# consider replacing all of these individual functions with a single get_statistics function
+def get_player_statistics(player_stats, stat_name):
+    # return player_stats.get(stat_name, None)
+    pass
+
+
 
 
 @app.route('/summoners/search', methods=["GET", "POST"])
