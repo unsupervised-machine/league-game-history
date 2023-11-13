@@ -1,6 +1,8 @@
 # map_champions_ids_to_names.py
 import json
 import pickle
+import yaml
+
 
 with open('../static/champion/champion_details_short.json', 'r', encoding='utf-8') as json_file:
     data = json.load(json_file)
@@ -18,3 +20,5 @@ with open('../static/champion/name_to_id_mapping.pkl', 'wb') as pickle_file:
     pickle.dump(name_to_id_mapping, pickle_file)
 
 
+with open('../static/champion/name_to_id_mapping.yaml', 'w') as file:
+    yaml.dump(name_to_id_mapping, file, default_flow_style=False)

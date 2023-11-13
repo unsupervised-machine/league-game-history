@@ -20,8 +20,12 @@
     <ul>
         {% for match in supplementary_match_info.values() %}
             <li style="background-color: {% if match['win_bool'] %}green{% else %}red{% endif %}; font-size:24px;">
-                Index: {{ match['index'] }}, Match ID: {{ match['match_id'] }}, Champion ID: {{ match['champion_id'] }}, Win: {{ match['win_bool'] }}
+{#                Index: {{ match['index'] }}, Match ID: {{ match['match_id'] }}, Champion ID: {{ match['champion_id'] }}, Win: {{ match['win_bool'] }}#}
+                Game Mode:  {{ match['game_mode'] }}, Kills: {{ match['kills'] }}, Deaths: {{ match['deaths'] }}, Assists: {{ match['assists'] }}, CS: {{ match['cs'] }}, Damage: {{ match['total_damage'] }}
                 <img class="left" src="{{ url_for('static', filename='champion/champion_icons_id/' + match['champion_id']|string) + '.png' }}" alt="Champion icon">
+                {% for i in range(7) %}
+                    <img class="left" src="{{ url_for('static', filename='items/item_icons_id/' + match['items'][i]|string) + '.png' }}" alt="Item {{ i + 1 }}">
+                {% endfor %}
             </li>
         {% endfor %}
     </ul>

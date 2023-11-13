@@ -171,6 +171,7 @@ def get_win_or_loss(puuid:str, match_data: dict) -> bool:
 def get_players(match_data: dict):
     pass
 
+
 def get_game_mode(match_data: dict) -> str:
     return match_data["info"]["gameMode"]
 
@@ -184,10 +185,12 @@ def get_kills_death_assists(puuid:str, match_data: dict) -> (int, int, int):
 
 
 def get_minions_killed(puuid:str, match_data: dict) -> int:
+    player_index = match_data["metadata"]["participants"].index(puuid)
     return match_data["info"]["participants"][player_index]["totalMinionsKilled"]
 
 
-def get_damaged_dealt(puuid:str, match_data: dict) -> int:
+def get_damage_dealt(puuid:str, match_data: dict) -> int:
+    player_index = match_data["metadata"]["participants"].index(puuid)
     return match_data["info"]["participants"][player_index]["totalDamageDealt"]
 
 
@@ -211,18 +214,32 @@ def summoner_search():
         summoner_name = form.summoner_name.data
         account_info = fetch_account_info_summoner(summoner_name)
         # can only handle 20 match_ids for now
-        match_history_ids = fetch_match_history_puuid(account_info['puuid'])[:20]
+        puuid = account_info['puuid']
+        match_history_ids = fetch_match_history_puuid(puuid)[:20]
         # supplementary_match_info is used for html won't be saved into database
         supplementary_match_info = OrderedDict()
         for idx, match_id in enumerate(match_history_ids):
             match_data = fetch_match_details(match_id=match_id)
-            champion_id = get_champion_id(puuid=account_info['puuid'], match_data=match_data)
-            win_bool = get_win_or_loss(puuid=account_info['puuid'], match_data=match_data)
+            champion_id = get_champion_id(puuid=puuid, match_data=match_data)
+            win_bool = get_win_or_loss(puuid=puuid, match_data=match_data)
+            game_mode = get_game_mode(match_data=match_data)
+            kills, deaths, assists = get_kills_death_assists(puuid=puuid, match_data=match_data)
+            cs = get_minions_killed(puuid=puuid, match_data=match_data)
+            total_damage = get_damage_dealt(puuid=puuid, match_data=match_data)
+            items = get_final_items(puuid=puuid, match_data=match_data)
+
             supplementary_match_info[match_id] = {
                 'index': idx,
                 'match_id': match_id,
+                'game_mode': game_mode,
                 'champion_id': champion_id,
-                'win_bool': win_bool
+                'win_bool': win_bool,
+                'kills': kills,
+                'deaths': deaths,
+                'assists': assists,
+                'cs': cs,
+                'total_damage': total_damage,
+                'items': items
             }
 
         filter_criteria = {'puuid': account_info['puuid']}
