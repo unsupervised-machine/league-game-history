@@ -1,0 +1,14 @@
+some future TODO ideas:
+- caching on memory:
+    Use a dictionary to keep track of responses from your database given an "action" and its "inputs". For example, user_cached[("search_summoner", "Taran")] = [User(Taran, id, ...),...]
+- seeding/migrating database:
+    serializing your data and output into JSON or some binary file,
+    then reading it to reseed your database from scratch
+- responsive website:
+    looks good on phone, tablet, or desktop
+- Clean the Look:
+    nicer background color, font, contrast, homepage/about page, header, footer, spacing
+- use redirects:
+    to link accounts and matches between each other - clicking on a user allows you to check their last matches
+    and players they played with.
+- create gif showing how the website works
