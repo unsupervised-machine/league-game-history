@@ -17,7 +17,7 @@ keep track of their in-game performance and match history.
 - Contributing
 - License
 
-![Match History](project_updates/2023_11_08/match_history_functionality.png)
+![Match History](project_updates/2023_11_12/item_and_game_statistics_added.png)
 
 
 
